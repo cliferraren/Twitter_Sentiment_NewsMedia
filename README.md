@@ -1,86 +1,137 @@
 
-# PyBer Ride Sharing Analysis
+## Unit 7 | Assignment - Distinguishing Sentiments
 
-### The ride sharing bonanza continues! Seeing the success of notable players like Uber and Lyft, you've decided to join a fledgling ride sharing company of your own. In your latest capacity, you'll be acting as Chief Data Strategist for the company. In this role, you'll be expected to offer data-backed guidance on new opportunities for market differentiation.
+Background
 
-You've since been given access to the company's complete recordset of rides. This contains information about every active driver and historic ride, including details like city, driver count, individual fares, and city type.
+Twitter has become a wildly sprawling jungle of information—140 characters at a time. Somewhere between 350 million and 500 million tweets are estimated to be sent out per day. With such an explosion of data, on Twitter and elsewhere, it becomes more important than ever to tame it in some way, to concisely capture the essence of the data.
 
-Your objective is to build a Bubble Plot that showcases the relationship between four key variables:
-
-
-Average Fare ($) Per City
-Total Number of Rides Per City
-Total Number of Drivers Per City
-City Type (Urban, Suburban, Rural)
+Choose one of the following two assignments, in which you will do just that. Good luck!
 
 
-In addition, you will be expected to produce the following three pie charts:
+News Mood
+
+In this assignment, you'll create a Python script to perform a sentiment analysis of the Twitter activity of various news oulets, and to present your findings visually.
+
+Your final output should provide a visualized summary of the sentiments expressed in Tweets sent out by the following news organizations: BBC, CBS, CNN, Fox, and New York times.
 
 
-% of Total Fares by City Type
-% of Total Rides by City Type
-% of Total Drivers by City Type
+
+The first plot will be and/or feature the following:
+
+
+Be a scatter plot of sentiments of the last 100 tweets sent out by each news organization, ranging from -1.0 to 1.0, where a score of 0 expresses a neutral sentiment, -1 the most negative sentiment possible, and +1 the most positive sentiment possible.
+Each plot point will reflect the compound sentiment of a tweet.
+Sort each plot point by its relative timestamp.
+
+
+The second plot will be a bar plot visualizing the overall sentiments of the last 100 tweets from each organization. For this plot, you will again aggregate the compound sentiments analyzed by VADER.
+
+The tools of the trade you will need for your task as a data analyst include the following: tweepy, pandas, matplotlib, seaborn, textblob, and VADER.
+
+Your final Jupyter notebook must:
+
+
+Pull last 100 tweets from each outlet.
+Perform a sentiment analysis with the compound, positive, neutral, and negative scoring for each tweet. 
+Pull into a DataFrame the tweet's source acount, its text, its date, and its compound, positive, neutral, and negative sentiment scores.
+Export the data in the DataFrame into a CSV file.
+Save PNG images for each plot.
 
 
 As final considerations:
 
 
-You must use the Pandas Library and the Jupyter Notebook.
-You must use the Matplotlib and Seaborn libraries.
-You must include a written description of three observable trends based on the data.
-You must use proper labeling of your plots, including aspects like: Plot Titles, Axes Labels, Legend Labels, Wedge Percentages, and Wedge Labels.
-Remember when making your plots to consider aesthetics!
-
-
-You must stick to the Pyber color scheme (Gold, Light Sky Blue, and Light Coral) in producing your plot and pie charts.
-When making your Bubble Plot, experiment with effects like alpha, edgecolor, and linewidths.
-When making your Pie Chart, experiment with effects like shadow, startangle, and explosion.
-
-
-You must include an exported markdown version of your Notebook called  README.md in your GitHub repository.
-
-
-See Example Solution for a reference on expected format.
-
-###    Analysis
-    
-    - Highly signicant are the differences in the concentration of rides, Percentage of Total Fares by City Type and Percentage of Total Rides by City Type as demonstrated on the analysis chart.
-
-    - Urban also have more significant number of drivers as compared to drivers from the other classified location types. 
-    
-    - However, urban have a lower fare average. It would be interesting to check and correlate the fare data against trip distance data. Trip distance could be a factor or if the factor of concentration of ride sharing drivers particularly on urban areas.
-    
-    - With the two data, it opens the question if one could earn good income driving for a ride sharing and what specific location type will be ideal to earn the most. 
-    
-    - On management side, the higher number and percentages gives conclusive information about the company's geographic concentration of its operation and locations it needs to work-on.
+Use the Matplotlib and Seaborn libraries.
+Include a written description of three observable trends based on the data. 
+Include proper labeling of your plots, including plot titles (with date of analysis) and axes labels.
+Include an exported markdown version of your Notebook called  README.md in your GitHub repository.
 
 
 ```python
-#import dependencies
-
+# Dependencies
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
-import os
+import json
+import tweepy
+from datetime import datetime
+import time
 import seaborn as sns
+from twitter_config import *
+
+# Initialize Sentiment Analyzer
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+analyzer = SentimentIntensityAnalyzer()
 ```
 
 
 ```python
-#import pyber files using pandas
-
-loc_data = os.path.join('raw_data', 'city_data.csv')
-ride_data = os.path.join('raw_data', 'ride_data.csv')
-
-#Read the flat files and create dataframes using pythin pandas
-loc_df = pd.read_csv(loc_data)
-ride_df =pd.read_csv(ride_data)
+# Setup Tweepy API Authentication
+auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token, access_token_secret)
+api = tweepy.API(auth)
 ```
 
 
 ```python
-#view sample contents of the location file
-loc_df.head(2)
+# Target User Accounts
+target_user = ("@BBCNorthAmerica", "@CBSNews", "@CNN", "@FoxNews", "@nytimes")
+```
+
+
+```python
+# Variable for holding sentiments
+sentiments =[]
+
+
+# Loop through each users:
+for user in target_user:
+    
+    # Counter
+    counter = 1
+
+    # Loop through 5 pages of tweets (total 100 tweets)
+    for page in tweepy.Cursor(api.user_timeline, id=user).pages(5):
+        
+        # Get all tweets from home feed
+        public_tweets = page
+        
+        # Loop through all tweets
+        for tweet in public_tweets:
+            
+            text = tweet._json["text"]
+            
+            #Tweet datetime object
+            time_stamp = tweet._json["created_at"]
+            time_stamp = datetime.strptime(time_stamp, "%a %b %d %H:%M:%S %z %Y")
+            
+            #Get the Real Name of twitter target
+            name = tweet._json['user']['name']
+            
+            # Run Vader Analysis on each tweet
+            compound = analyzer.polarity_scores(text)["compound"]
+            pos = analyzer.polarity_scores(text)["pos"]
+            neu = analyzer.polarity_scores(text)["neu"]
+            neg = analyzer.polarity_scores(text)["neg"]
+            
+            # Add sentiments for each tweet into an array
+            sentiments.append({"Media Sources": name,
+                               "Date": time_stamp, 
+                               "Tweet Text" : text,
+                               "Compound": compound,
+                               "Positive": pos,
+                               "Negative": neu,
+                               "Neutral": neg,
+                               "Tweets Ago": counter})
+            # Add to counter 
+            counter += 1
+```
+
+
+```python
+# Convert sentiments to DataFrame
+sentiments_pd = pd.DataFrame.from_dict(sentiments)
+sentiments_pd[:10]
 ```
 
 
@@ -104,360 +155,126 @@ loc_df.head(2)
   <thead>
     <tr style="text-align: right;">
       <th></th>
-      <th>city</th>
-      <th>driver_count</th>
-      <th>type</th>
+      <th>Compound</th>
+      <th>Date</th>
+      <th>Media Sources</th>
+      <th>Negative</th>
+      <th>Neutral</th>
+      <th>Positive</th>
+      <th>Tweet Text</th>
+      <th>Tweets Ago</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <th>0</th>
-      <td>Kelseyland</td>
-      <td>63</td>
-      <td>Urban</td>
+      <td>-0.3400</td>
+      <td>2018-03-24 03:52:04+00:00</td>
+      <td>BBC North America</td>
+      <td>0.769</td>
+      <td>0.231</td>
+      <td>0.000</td>
+      <td>The art of the US gun reform movement https://...</td>
+      <td>1</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>Nguyenbury</td>
-      <td>8</td>
-      <td>Urban</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-
-
-
-```python
-#view sample contents of the ride information
-ride_df.head(2)
-```
-
-
-
-
-<div>
-<style>
-    .dataframe thead tr:only-child th {
-        text-align: right;
-    }
-
-    .dataframe thead th {
-        text-align: left;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>city</th>
-      <th>date</th>
-      <th>fare</th>
-      <th>ride_id</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>Sarabury</td>
-      <td>2016-01-16 13:49:27</td>
-      <td>38.35</td>
-      <td>5403689035038</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>South Roy</td>
-      <td>2016-01-02 18:42:34</td>
-      <td>17.49</td>
-      <td>4036272335942</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-
-
-
-```python
-#Check number of count of records for Location Dataframe
-loc_df.count()
-```
-
-
-
-
-    city            126
-    driver_count    126
-    type            126
-    dtype: int64
-
-
-
-
-```python
-#Drop duplicated records and keeping the first
-loc_df = loc_df.drop_duplicates('city', keep='first')
-loc_df.count()
-```
-
-
-
-
-    city            125
-    driver_count    125
-    type            125
-    dtype: int64
-
-
-
-
-```python
-# Check for missing values
-loc_df.isnull().values.any()
-```
-
-
-
-
-    False
-
-
-
-
-```python
-#Check number of count of records for Location Dataframe
-ride_df.count()
-```
-
-
-
-
-    city       2375
-    date       2375
-    fare       2375
-    ride_id    2375
-    dtype: int64
-
-
-
-
-```python
-#Drop duplicated records and keeping the first
-ride_df = ride_df.drop_duplicates('ride_id', keep='first')
-ride_df.count()
-```
-
-
-
-
-    city       2375
-    date       2375
-    fare       2375
-    ride_id    2375
-    dtype: int64
-
-
-
-
-```python
-# Check for missing values
-ride_df.isnull().values.any()
-```
-
-
-
-
-    False
-
-
-
-
-```python
-#merge both dataframes
-merged_df = loc_df.merge(ride_df, on = 'city')
-merged_df.head()
-```
-
-
-
-
-<div>
-<style>
-    .dataframe thead tr:only-child th {
-        text-align: right;
-    }
-
-    .dataframe thead th {
-        text-align: left;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>city</th>
-      <th>driver_count</th>
-      <th>type</th>
-      <th>date</th>
-      <th>fare</th>
-      <th>ride_id</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>Kelseyland</td>
-      <td>63</td>
-      <td>Urban</td>
-      <td>2016-08-19 04:27:52</td>
-      <td>5.51</td>
-      <td>6246006544795</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>Kelseyland</td>
-      <td>63</td>
-      <td>Urban</td>
-      <td>2016-04-17 06:59:50</td>
-      <td>5.54</td>
-      <td>7466473222333</td>
+      <td>0.4019</td>
+      <td>2018-03-24 02:49:02+00:00</td>
+      <td>BBC North America</td>
+      <td>0.828</td>
+      <td>0.000</td>
+      <td>0.172</td>
+      <td>Was the #Stoneman shooting any different? Yes,...</td>
+      <td>2</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>Kelseyland</td>
-      <td>63</td>
-      <td>Urban</td>
-      <td>2016-05-04 15:06:07</td>
-      <td>30.54</td>
-      <td>2140501382736</td>
+      <td>0.3400</td>
+      <td>2018-03-24 02:09:29+00:00</td>
+      <td>BBC North America</td>
+      <td>0.714</td>
+      <td>0.000</td>
+      <td>0.286</td>
+      <td>The week Facebook's value plunged $58bn https:...</td>
+      <td>3</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>Kelseyland</td>
-      <td>63</td>
-      <td>Urban</td>
-      <td>2016-01-25 20:44:56</td>
-      <td>12.08</td>
-      <td>1896987891309</td>
+      <td>0.0000</td>
+      <td>2018-03-24 02:01:23+00:00</td>
+      <td>BBC North America</td>
+      <td>1.000</td>
+      <td>0.000</td>
+      <td>0.000</td>
+      <td>Florida school shooting: Pennsylvania students...</td>
+      <td>4</td>
     </tr>
     <tr>
       <th>4</th>
-      <td>Kelseyland</td>
-      <td>63</td>
-      <td>Urban</td>
-      <td>2016-08-09 18:19:47</td>
-      <td>17.91</td>
-      <td>8784212854829</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-
-
-## Bubble Plot of Ride Sharing Data
-
-
-```python
-#Group new DataFrame by City
-group_byCity = merged_df.groupby('city')
-
-#Get Avg Fare by City
-avg_fare = group_byCity.mean()['fare']
-
-#Total Rides
-t_ride = group_byCity['ride_id'].count()
-
-#Total Drivers
-t_driver = group_byCity.mean()['driver_count']
-
-# city type data and set as index
-city_type = loc_df.set_index('city')['type']
-```
-
-
-```python
-# Create new DataFrame of the summary
-pyDer_df = pd.DataFrame({
-    'Average Fare': avg_fare,
-    'Driver Count': t_driver,
-    'Total Rides': t_ride,
-    'City Types': city_type
-})
-pyDer_df.head()
-```
-
-
-
-
-<div>
-<style>
-    .dataframe thead tr:only-child th {
-        text-align: right;
-    }
-
-    .dataframe thead th {
-        text-align: left;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>Average Fare</th>
-      <th>City Types</th>
-      <th>Driver Count</th>
-      <th>Total Rides</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>Alvarezhaven</th>
-      <td>23.928710</td>
-      <td>Urban</td>
-      <td>21.0</td>
-      <td>31</td>
+      <td>-0.2263</td>
+      <td>2018-03-24 01:45:17+00:00</td>
+      <td>BBC North America</td>
+      <td>0.787</td>
+      <td>0.213</td>
+      <td>0.000</td>
+      <td>Illustrating this turbulent time in American p...</td>
+      <td>5</td>
     </tr>
     <tr>
-      <th>Alyssaberg</th>
-      <td>20.609615</td>
-      <td>Urban</td>
-      <td>67.0</td>
-      <td>26</td>
+      <th>5</th>
+      <td>0.0000</td>
+      <td>2018-03-24 00:50:03+00:00</td>
+      <td>BBC North America</td>
+      <td>1.000</td>
+      <td>0.000</td>
+      <td>0.000</td>
+      <td>"Why I'm marching on Washington DC" https://t....</td>
+      <td>6</td>
     </tr>
     <tr>
-      <th>Anitamouth</th>
-      <td>37.315556</td>
-      <td>Suburban</td>
-      <td>16.0</td>
+      <th>6</th>
+      <td>-0.3400</td>
+      <td>2018-03-23 23:35:22+00:00</td>
+      <td>BBC North America</td>
+      <td>0.745</td>
+      <td>0.255</td>
+      <td>0.000</td>
+      <td>America's gun reform in 10 charts https://t.co...</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>0.0000</td>
+      <td>2018-03-23 22:37:25+00:00</td>
+      <td>BBC North America</td>
+      <td>1.000</td>
+      <td>0.000</td>
+      <td>0.000</td>
+      <td>Elon Musk pulls Tesla and SpaceX from Facebook...</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>-0.3818</td>
+      <td>2018-03-23 21:41:40+00:00</td>
+      <td>BBC North America</td>
+      <td>0.500</td>
+      <td>0.307</td>
+      <td>0.193</td>
+      <td>Iowa family found dead in Mexico holiday home ...</td>
       <td>9</td>
     </tr>
     <tr>
-      <th>Antoniomouth</th>
-      <td>23.625000</td>
-      <td>Urban</td>
-      <td>21.0</td>
-      <td>22</td>
-    </tr>
-    <tr>
-      <th>Aprilchester</th>
-      <td>21.981579</td>
-      <td>Urban</td>
-      <td>49.0</td>
-      <td>19</td>
+      <th>9</th>
+      <td>0.3400</td>
+      <td>2018-03-23 21:10:09+00:00</td>
+      <td>BBC North America</td>
+      <td>0.789</td>
+      <td>0.000</td>
+      <td>0.211</td>
+      <td>John Bolton: Who is Trump's new national secur...</td>
+      <td>10</td>
     </tr>
   </tbody>
 </table>
@@ -467,91 +284,15 @@ pyDer_df.head()
 
 
 ```python
-#Create Category according the City Type
-rural = pyDer_df[pyDer_df['City Types'] == 'Rural']
-suburban = pyDer_df[pyDer_df['City Types'] == 'Suburban']
-urban = pyDer_df[pyDer_df['City Types'] == 'Urban']
-```
-
-
-```python
-#color scheme dictionary and preview
-color_scheme = {'Gold':'#f1e556', 'Light Sky Blue':'#a9ebf7', 'Light Coral':'#dd6262'}
-
-#Color code
-cityType_color = {'Suburban': color_scheme['Light Sky Blue'],
-                  'Urban': color_scheme['Light Coral'],
-                  'Rural': color_scheme['Gold']
-                  }
-```
-
-
-```python
-#Creat scatter plot for the 3 categories(Urban,Sub-urban, Rural)
-
-#applying effects like alpha, edgecolor, and linewidths
-
-plt.scatter(rural['Total Rides'], 
-            rural['Average Fare'], 
-            s = rural['Driver Count']*5, 
-            color = cityType_color['Rural'], 
-            edgecolor = 'grey',
-            linewidth = 0.5, 
-            label = 'Rural', alpha = .5)
-plt.scatter(suburban['Total Rides'], 
-            suburban['Average Fare'], 
-            s = suburban['Driver Count']*5, 
-            color = cityType_color['Suburban'], 
-            linewidth = 0.5, 
-            edgecolor = 'grey', 
-            label = 'Suburban', alpha = .5)
-plt.scatter(urban['Total Rides'], 
-            urban['Average Fare'], 
-            s = urban['Driver Count']*5, 
-            color = cityType_color['Urban'], 
-            linewidth = 0.5, 
-            edgecolor = 'grey', 
-            label = 'Urban', alpha = .5)
-
-```
-
-
-
-
-    <matplotlib.collections.PathCollection at 0x10b609128>
-
-
-
-
-```python
-#Sup_Title of the Bubble Chart
-plt.suptitle('PyBer Ride Sharing Data')
-
-#Plot Titles, Axes Labels, Legend Labels, Wedge Percentages, and Wedge Labels. 
-plt.title('Note : Circle size correlates with the Count of Drivers per City')
-plt.xlabel('Total Rides per City')
-plt.ylabel('Average Fare per City')
-
-lgnd = plt.legend(frameon = True, edgecolor = 'grey')
-lgnd.legendHandles[0]._sizes = [60]
-lgnd.legendHandles[1]._sizes = [60]
-lgnd.legendHandles[2]._sizes = [60]
-```
-
-
-```python
-plt.show()
-```
-
-
-![png](output_21_0.png)
-
-
-## By City Type
-
-
-```python
-merged_df.head()
+sentiments_pd = sentiments_pd[['Media Sources', 
+                               'Tweet Text', 
+                               'Date','Compound', 
+                               'Positive', 
+                               'Neutral', 
+                               'Negative',
+                               'Tweets Ago']]
+sentiments_pd.to_csv("Resources/news_media_tweets.csv")
+sentiments_pd[:10]
 ```
 
 
@@ -575,59 +316,126 @@ merged_df.head()
   <thead>
     <tr style="text-align: right;">
       <th></th>
-      <th>city</th>
-      <th>driver_count</th>
-      <th>type</th>
-      <th>date</th>
-      <th>fare</th>
-      <th>ride_id</th>
+      <th>Media Sources</th>
+      <th>Tweet Text</th>
+      <th>Date</th>
+      <th>Compound</th>
+      <th>Positive</th>
+      <th>Neutral</th>
+      <th>Negative</th>
+      <th>Tweets Ago</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <th>0</th>
-      <td>Kelseyland</td>
-      <td>63</td>
-      <td>Urban</td>
-      <td>2016-08-19 04:27:52</td>
-      <td>5.51</td>
-      <td>6246006544795</td>
+      <td>BBC North America</td>
+      <td>The art of the US gun reform movement https://...</td>
+      <td>2018-03-24 03:52:04+00:00</td>
+      <td>-0.3400</td>
+      <td>0.000</td>
+      <td>0.231</td>
+      <td>0.769</td>
+      <td>1</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>Kelseyland</td>
-      <td>63</td>
-      <td>Urban</td>
-      <td>2016-04-17 06:59:50</td>
-      <td>5.54</td>
-      <td>7466473222333</td>
+      <td>BBC North America</td>
+      <td>Was the #Stoneman shooting any different? Yes,...</td>
+      <td>2018-03-24 02:49:02+00:00</td>
+      <td>0.4019</td>
+      <td>0.172</td>
+      <td>0.000</td>
+      <td>0.828</td>
+      <td>2</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>Kelseyland</td>
-      <td>63</td>
-      <td>Urban</td>
-      <td>2016-05-04 15:06:07</td>
-      <td>30.54</td>
-      <td>2140501382736</td>
+      <td>BBC North America</td>
+      <td>The week Facebook's value plunged $58bn https:...</td>
+      <td>2018-03-24 02:09:29+00:00</td>
+      <td>0.3400</td>
+      <td>0.286</td>
+      <td>0.000</td>
+      <td>0.714</td>
+      <td>3</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>Kelseyland</td>
-      <td>63</td>
-      <td>Urban</td>
-      <td>2016-01-25 20:44:56</td>
-      <td>12.08</td>
-      <td>1896987891309</td>
+      <td>BBC North America</td>
+      <td>Florida school shooting: Pennsylvania students...</td>
+      <td>2018-03-24 02:01:23+00:00</td>
+      <td>0.0000</td>
+      <td>0.000</td>
+      <td>0.000</td>
+      <td>1.000</td>
+      <td>4</td>
     </tr>
     <tr>
       <th>4</th>
-      <td>Kelseyland</td>
-      <td>63</td>
-      <td>Urban</td>
-      <td>2016-08-09 18:19:47</td>
-      <td>17.91</td>
-      <td>8784212854829</td>
+      <td>BBC North America</td>
+      <td>Illustrating this turbulent time in American p...</td>
+      <td>2018-03-24 01:45:17+00:00</td>
+      <td>-0.2263</td>
+      <td>0.000</td>
+      <td>0.213</td>
+      <td>0.787</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>BBC North America</td>
+      <td>"Why I'm marching on Washington DC" https://t....</td>
+      <td>2018-03-24 00:50:03+00:00</td>
+      <td>0.0000</td>
+      <td>0.000</td>
+      <td>0.000</td>
+      <td>1.000</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>BBC North America</td>
+      <td>America's gun reform in 10 charts https://t.co...</td>
+      <td>2018-03-23 23:35:22+00:00</td>
+      <td>-0.3400</td>
+      <td>0.000</td>
+      <td>0.255</td>
+      <td>0.745</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>BBC North America</td>
+      <td>Elon Musk pulls Tesla and SpaceX from Facebook...</td>
+      <td>2018-03-23 22:37:25+00:00</td>
+      <td>0.0000</td>
+      <td>0.000</td>
+      <td>0.000</td>
+      <td>1.000</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>BBC North America</td>
+      <td>Iowa family found dead in Mexico holiday home ...</td>
+      <td>2018-03-23 21:41:40+00:00</td>
+      <td>-0.3818</td>
+      <td>0.193</td>
+      <td>0.307</td>
+      <td>0.500</td>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>BBC North America</td>
+      <td>John Bolton: Who is Trump's new national secur...</td>
+      <td>2018-03-23 21:10:09+00:00</td>
+      <td>0.3400</td>
+      <td>0.211</td>
+      <td>0.000</td>
+      <td>0.789</td>
+      <td>10</td>
     </tr>
   </tbody>
 </table>
@@ -637,9 +445,33 @@ merged_df.head()
 
 
 ```python
-#Organized columns of data and rename column
-DF_by_cityType = merged_df.groupby('type')['type', 'ride_id', 'fare', 'driver_count']
-DF_by_cityType.head(2)
+color_palette = ('lime', 'yellow', 'cyan', 'coral', 'dodgerblue')
+
+g = sns.lmplot(x='Tweets Ago', 
+           y='Compound', 
+           data=sentiments_pd,
+           fit_reg=False,
+           size = 8,
+           legend_out=True,
+           hue='Media Sources',
+           palette = color_palette,
+           scatter_kws={"s":100,"alpha":0.5,"linewidth":1,"edgecolors":'grey'})
+
+plt.title(f"Sentiment Analysis of Media Tweets ({time.strftime('%m/%d/%Y')})")
+plt.ylabel('Tweet Polarity')
+plt.savefig("Resources/Media_tweets_sentiment_analysis.png")
+plt.show()
+```
+
+
+![png](output_9_0.png)
+
+
+
+```python
+sentiments_summary = sentiments_pd.groupby('Media Sources', as_index=False).mean()
+sentiments_summary = sentiments_summary[['Media Sources', 'Compound']]
+sentiments_summary
 ```
 
 
@@ -663,54 +495,35 @@ DF_by_cityType.head(2)
   <thead>
     <tr style="text-align: right;">
       <th></th>
-      <th>type</th>
-      <th>ride_id</th>
-      <th>fare</th>
-      <th>driver_count</th>
+      <th>Media Sources</th>
+      <th>Compound</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <th>0</th>
-      <td>Urban</td>
-      <td>6246006544795</td>
-      <td>5.51</td>
-      <td>63</td>
+      <td>BBC North America</td>
+      <td>-0.128016</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>Urban</td>
-      <td>7466473222333</td>
-      <td>5.54</td>
-      <td>63</td>
+      <td>CBS News</td>
+      <td>-0.156817</td>
     </tr>
     <tr>
-      <th>1625</th>
-      <td>Suburban</td>
-      <td>485795568537</td>
-      <td>25.00</td>
-      <td>4</td>
+      <th>2</th>
+      <td>CNN</td>
+      <td>-0.041507</td>
     </tr>
     <tr>
-      <th>1626</th>
-      <td>Suburban</td>
-      <td>617204620844</td>
-      <td>49.47</td>
-      <td>4</td>
+      <th>3</th>
+      <td>Fox News</td>
+      <td>-0.009321</td>
     </tr>
     <tr>
-      <th>2250</th>
-      <td>Rural</td>
-      <td>8193837300497</td>
-      <td>22.79</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <th>2251</th>
-      <td>Rural</td>
-      <td>4943246873754</td>
-      <td>26.72</td>
-      <td>3</td>
+      <th>4</th>
+      <td>The New York Times</td>
+      <td>-0.081286</td>
     </tr>
   </tbody>
 </table>
@@ -720,152 +533,24 @@ DF_by_cityType.head(2)
 
 
 ```python
-pie_color = ['#f1e556', '#a9ebf7', '#dd6262']
-pie_explode = [0, 0.1, 0.1]
-```
+plt.figure(figsize=(12,8))
+plt.ylim(-0.2,0.2)
+ax = sns.barplot(x = sentiments_summary['Media Sources'], 
+                 y = sentiments_summary['Compound'],
+                 data=sentiments_summary,
+                 palette = color_palette
+                )
 
-
-```python
-#Total Fare per City
-totalFare_perCityType = DF_by_cityType.sum()['fare']
-
-#index of the chart
-pie_index = totalFare_perCityType.index
-```
-
-
-```python
-#Create the pie plot
-plt.pie(totalFare_perCityType, 
-        autopct='%.2f%%',
-        colors=pie_color,
-        explode=pie_explode,
-        labels = pie_index,
-        startangle = 90,
-        shadow = True, 
-        wedgeprops = {'linewidth':.5,'edgecolor': 'black'}
-       )
-```
-
-
-
-
-    ([<matplotlib.patches.Wedge at 0x1a12cc9160>,
-      <matplotlib.patches.Wedge at 0x1a12cc9ba8>,
-      <matplotlib.patches.Wedge at 0x1a12cd2668>],
-     [Text(-0.229323,1.07583,'Rural'),
-      Text(-1.17672,0.235235,'Suburban'),
-      Text(1.10182,-0.475382,'Urban')],
-     [Text(-0.125085,0.586817,'6.68%'),
-      Text(-0.686419,0.13722,'30.35%'),
-      Text(0.64273,-0.277306,'62.97%')])
-
-
-
-
-```python
-plt.title('% of Total Fares by City Type')
-plt.axis('equal')
+plt.title(f"Overall Media Sentiment based on Twitter ({time.strftime('%m/%d/%Y')})")
+plt.ylabel('Tweet Polarity')
+plt.savefig("Resources/Overall_Media_Sentiment.png")
 plt.show()
 ```
 
 
-![png](output_28_0.png)
-
-
-## Total Rides by City Type
-
-
-```python
-#% of Total Rides by City Type
-totalRides_perCityType = DF_by_cityType.count()['ride_id']
-```
-
-
-```python
-#Create the pie plot
-plt.pie(totalRides_perCityType, 
-        autopct='%.2f%%',
-        colors=pie_color,
-        explode=pie_explode,
-        labels = pie_index,
-        startangle = 90,
-        shadow = True, 
-        wedgeprops = {'linewidth':.5,'edgecolor': 'black'}
-       )
-```
+    <matplotlib.figure.Figure at 0x1a1ebd2ba8>
 
 
 
+![png](output_11_1.png)
 
-    ([<matplotlib.patches.Wedge at 0x1a12d1d518>,
-      <matplotlib.patches.Wedge at 0x1a12d1df60>,
-      <matplotlib.patches.Wedge at 0x1a12d28a20>],
-     [Text(-0.181054,1.085,'Rural'),
-      Text(-1.09893,0.482034,'Suburban'),
-      Text(1.0046,-0.656338,'Urban')],
-     [Text(-0.0987568,0.591817,'5.26%'),
-      Text(-0.641041,0.281187,'26.32%'),
-      Text(0.586017,-0.382864,'68.42%')])
-
-
-
-
-```python
-plt.title('% of Total Rides by City Type')
-plt.axis('equal')
-plt.show()
-```
-
-
-![png](output_32_0.png)
-
-
-## Total Drivers by City Type
-
-
-```python
-#% of Total Drivers by City Type
-totalDrivers_perCityType = DF_by_cityType.count()['driver_count']
-```
-
-
-```python
-#Create the pie plot
-plt.pie(totalDrivers_perCityType, 
-        autopct='%.2f%%',
-        colors=pie_color,
-        explode=pie_explode,
-        labels = pie_index,
-        startangle = 90,
-        shadow = True, 
-        wedgeprops = {'linewidth':.5,'edgecolor': 'black'}
-       )
-```
-
-
-
-
-    ([<matplotlib.patches.Wedge at 0x1a1afb1ac8>,
-      <matplotlib.patches.Wedge at 0x1a1afb9550>,
-      <matplotlib.patches.Wedge at 0x1a1afb9fd0>],
-     [Text(-0.181054,1.085,'Rural'),
-      Text(-1.09893,0.482034,'Suburban'),
-      Text(1.0046,-0.656338,'Urban')],
-     [Text(-0.0987568,0.591817,'5.26%'),
-      Text(-0.641041,0.281187,'26.32%'),
-      Text(0.586017,-0.382864,'68.42%')])
-
-
-
-
-```python
-plt.title('% of Total Drivers by City Type')
-plt.axis('equal')
-plt.show()
-```
-
-
-![png](output_36_0.png)
-
-echo # USC_Data_Analytics
