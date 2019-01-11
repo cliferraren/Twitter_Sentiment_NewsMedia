@@ -1,4 +1,4 @@
-##News Media Twitter Mode Analysis
+## News Media Twitter Mode Analysis
 
 In this project, we create da Python script to perform a sentiment analysis of the Twitter activity of various news oulets, and to present our findings visually.
 
